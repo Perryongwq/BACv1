@@ -19,8 +19,10 @@ class PRASS(readSettings):
         Machine Number.
     payroll : str
         Payroll Number.
-    inQty : strs
+    inQty : str
         Input Quantity.
+    blkWeight : str
+        Block Weight.
     Wscreen : str
         Providing Screen Size (Width) to Class.
     Hscreen : str
@@ -38,12 +40,12 @@ class PRASS(readSettings):
     def initialize(self,root,inData,Wscreen,Hscreen):
         self.path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),"prass",datetime.today().strftime("%b%y"))
         self.root = root
-        self.lotNum,self.mcNo,self.payRoll,self.inQty = inData #,self.blkWgt
+        self.lotNum,self.mcNo,self.payRoll,self.inQty,self.blkWeight = inData
         self.Wscreen,self.Hscreen=Wscreen,Hscreen
 
-    # def win_config(self,Wscreen,Hscreen):
+    # def win_config(self):
 
-    # def widgets(self,Wscreen,Hscreen):
+    # def widgets(self):
 
     # Data Cleanup and Summation of Data
     ####################################################################################################
@@ -81,8 +83,8 @@ class PRASS(readSettings):
             if j != range(10-(len(df["Total"])-1))[-1]: prassDef += "||" 
             else: prassDef += "|"
 
-        # File Spec to follow
-        pData = f"{self.lotNum}|{self.mcNo}|{self.payRoll}|{date}|{time}|{self.inQty}|{newdf.loc['Output','Total']}|{prassDef}"
+        # File Spec to follow - Added block weight at the end
+        pData = f"{self.lotNum}|{self.mcNo}|{self.payRoll}|{date}|{time}|{self.inQty}|{newdf.loc['Output','Total']}|{prassDef}|{self.blkWeight}"
 
         self.send_PRASS(pData,newdf)
 

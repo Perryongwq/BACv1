@@ -33,7 +33,7 @@ class Summary(readSettings):
         self.frame.pack()
 
     def widgets(self):
-        # Labelframe for Lot Number Data
+        # Labelframe for Lot Number Data and Block Weight
         ####################################################################################################
 
         lotNumCont = LabelFrame(self.frame, bd=5, relief=FLAT)
@@ -44,6 +44,13 @@ class Summary(readSettings):
 
         lotNum = Label(lotNumCont, text=self.inData[0], font=self.font['S'])
         lotNum.grid(row=0, column=1, padx=3, pady=1)
+        
+        # Add Block Weight display
+        blkWeightTxt = Label(lotNumCont, text="Block Weight: ", font=self.font['S'])
+        blkWeightTxt.grid(row=0, column=2, padx=(20,3), pady=1, sticky=W)
+        
+        blkWeight = Label(lotNumCont, text=self.inData[4], font=self.font['S'])
+        blkWeight.grid(row=0, column=3, padx=3, pady=1)
 
         # Labelframe for Defects Data
         ####################################################################################################

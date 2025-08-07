@@ -19,8 +19,8 @@ class MainWindow(readSettings):
     def __init__(self,root):
         super().__init__()
         self.root = root
-        # self.light = Lighting()
-        # if not self.config['Trouble']: self.light.initialize()
+        self.light = Lighting()
+        if not self.config['Trouble']: self.light.initialize()
         self.defVar = {}
         self.camera()
         self.win_config()
@@ -77,10 +77,17 @@ class MainWindow(readSettings):
         lotMcFrame.grid(row=len(self.defCode)+1, column=2, columnspan=2, sticky=EW)
         lotMcFrame.columnconfigure(3,weight=1)
 
-        entrytxt = ["Lot Number","M/C Number","PayRoll Number","Input Quantity"]
+        entrytxt = ["Lot Number", "M/C Number", "PayRoll Number", "Blk Weight", "Input Quantity"]
 
         for i, entxt in enumerate(entrytxt):
-            Label(lotMcFrame, text=entxt, wraplength=50, justify=LEFT).grid(row=i%2, column=0 if i<2 else 4, pady=5, padx=3, sticky=W)
+            # For the first 4 items (indices 0-3), place as before
+            if i < 4:
+                row_idx = i % 2
+                col_idx = 0 if i < 2 else 4
+                Label(lotMcFrame, text=entxt, wraplength=50, justify=LEFT).grid(row=row_idx, column=col_idx, pady=5, padx=3, sticky=W)
+            else:
+                # For Input Quantity (index 4), place in row 2, column 0
+                Label(lotMcFrame, text=entxt, wraplength=50, justify=LEFT).grid(row=2, column=0, pady=5, padx=3, sticky=W)
 
         self.lotNumberEdit = Entry(lotMcFrame, name="lotno", font=self.font['L'], width=11, justify=CENTER, validate="key", validatecommand=self.reg)
         self.lotNumberEdit.grid(row=0, column=1, columnspan=2, pady=3, sticky=E)
@@ -90,9 +97,18 @@ class MainWindow(readSettings):
 
         self.mcNumberEdit = Entry(lotMcFrame, name="mcno", font=self.font['L'], width=11, justify=CENTER, validate="key", validatecommand=self.reg)
         self.mcNumberEdit.grid(row=1, column=1, columnspan=2, pady=3, sticky=E)
-
+        
+        # blkWeightEdit 
+        blkWeightFrame = Frame(lotMcFrame)
+        blkWeightFrame.grid(row=1, column=5, columnspan=2, pady=3, sticky=E)
+        
+        self.blkWeightEdit = Entry(blkWeightFrame, name="blkweight", font=self.font['L'], width=8, justify=CENTER, state=DISABLED)
+        self.blkWeightEdit.grid(row=0, column=0, pady=0, sticky=W)
+        
+        Button(blkWeightFrame, text="...", height=1, width=2, command=lambda: self.blkWeightInput()).grid(row=0, column=1, padx=(2,0), pady=0, sticky=E)
+        
         self.inQtyEdit = Entry(lotMcFrame, name="inqty", font=self.font['L'], width=11, justify=CENTER, validate="key", validatecommand=self.reg)
-        self.inQtyEdit.grid(row=1, column=5, columnspan=2, pady=3, sticky=E)
+        self.inQtyEdit.grid(row=2, column=1, columnspan=2, pady=3, sticky=E)
 
         # Spinner for Item Drop Down (02, 03 or 15)
         ####################################################################################################
@@ -133,6 +149,63 @@ class MainWindow(readSettings):
     """ 
     ####################################################################################################
 
+    def blkWeightInput(self):
+        """
+        Open NumPad for Blk Weight input similar to SamDropInput
+        """
+        if self.chkEntry(False):
+            inputValue = InputBox(self.root, "Blk Weight", self.Wscreen, self.Hscreen).inputVal.get()
+            if inputValue == "": 
+                inputValue = "0"
+            
+            # Validate that the input has at most 3 decimal places
+            try:
+                float_val = float(inputValue)
+                decimal_part = inputValue.split('.')
+                if len(decimal_part) > 1 and len(decimal_part[1]) > 3:
+                    # Truncate to 3 decimal places if needed
+                    inputValue = decimal_part[0] + '.' + decimal_part[1][:3]
+            except ValueError:
+                inputValue = "0"
+                
+            self.blkWeightEdit.config(state=NORMAL)
+            self.blkWeightEdit.delete(0, END)
+            self.blkWeightEdit.insert(0, inputValue)
+            self.blkWeightEdit.config(state=DISABLED)
+
+    def validate_decimal(self, value):
+        """
+        Validates the Blk Weight input to ensure it has at most 3 decimal places
+        
+        Parameters
+        ----------
+        value : str
+            The current value in the entry field
+        
+        Returns
+        -------
+        bool
+            True if the input is valid, False otherwise
+        """
+        # Allow empty input
+        if value == "":
+            return True
+            
+        # Check if the value is a valid decimal number
+        try:
+            # Try to convert to float to check if it's a valid number
+            float_val = float(value)
+            
+            # Check if it has at most 3 decimal places
+            decimal_part = value.split('.')
+            if len(decimal_part) > 1 and len(decimal_part[1]) > 3:
+                return False
+                
+            return True
+        except ValueError:
+            # Not a valid float
+            return False
+
     def colorCB(self,name,index,mode):
         if self.root.getvar(name) == "EQA": self.accdrop.config(bg="#c6e2e9") 
         elif self.root.getvar(name) == "DMA": self.accdrop.config(bg="#fffdaf")
@@ -149,7 +222,7 @@ class MainWindow(readSettings):
                 self.filePath = os.path.join(foldir,input+".xlsx")
                 self.payRollEdit.focus()
         elif name.split(".")[-1] == "payroll" and len(input) == 7: self.mcNumberEdit.focus()
-        elif name.split(".")[-1] == "mcno" and len(input) == 3: self.inQtyEdit.focus()
+        elif name.split(".")[-1] == "mcno" and len(input) == 3: self.inQtyEdit.focus()  # Skip blkWeightEdit as it's now a button-triggered input
         return True
 
     # Retrieve Lot number from entry and retrieve Input Quantity
@@ -167,18 +240,19 @@ class MainWindow(readSettings):
     # Check for correct input before proceeding to processing image captured
     ####################################################################################################
     def chkEntry(self,var):
-
         errCode = {
             'lotError' : {'title':'Lot Number Not Found', 'message':'Please Input the Lot No'},
             'payError' : {'title':'Payroll Not Found', 'message':'Please Input the Payroll No'},
             'mcError' : {'title':'Machine Number Not Found', 'message':'Please Input the Machine No'},
-            'inputError' : {'title':'Input Quantity Not Found', 'message':'Please Input the Input Quantity'}
+            'inputError' : {'title':'Input Quantity Not Found', 'message':'Please Input the Input Quantity'},
+            'blkError' : {'title':'Block Weight Not Found', 'message':'Please Input the Block Weight'}
         }
         if len(self.lotNumberEdit.get()) != 10: return messagebox.showerror(**errCode['lotError']) != "ok"
         if var:
             if len(self.payRollEdit.get()) == 0: return messagebox.showerror(**errCode['payError']) != "ok"
             elif len(self.mcNumberEdit.get()) == 0: return messagebox.showerror(**errCode['mcError']) != "ok"
             elif len(self.inQtyEdit.get()) == 0: return messagebox.showerror(**errCode['inputError']) != "ok"
+            elif len(self.blkWeightEdit.get()) == 0: return messagebox.showerror(**errCode['blkError']) != "ok"
         return True
 
     # For Editing Entry Box (E.g Sample and Drop Chip) input by User
@@ -212,7 +286,11 @@ class MainWindow(readSettings):
     # Process image and show to User
     ####################################################################################################
     def processImg(self,chip,mat):
-        if self.config['Trouble']: chip = "02" if mat == "EQA" else "03" if mat == "DMA" else "15"
+        # Force the correct chip type based on material type
+        # This ensures EQA always uses "02", DMA uses "03", and ERA uses "15"
+        # regardless of what comes from the API or chip type extraction
+        chip = "02" if mat == "EQA" else "03" if mat == "DMA" else "15"
+        
         for defName in self.defCode: self.defVar[defName].config(text="0")
         if self.chkEntry(True):
             try:
@@ -241,7 +319,7 @@ class MainWindow(readSettings):
     ####################################################################################################
     def showSum(self,res):
         if self.chkEntry(False) and res:
-            inData = [self.lotNumberEdit.get(),self.mcNumberEdit.get(),self.payRollEdit.get(),self.inQtyEdit.get()]
+            inData = [self.lotNumberEdit.get(),self.mcNumberEdit.get(),self.payRollEdit.get(),self.inQtyEdit.get(),self.blkWeightEdit.get()]
             self.showSum(Summary(self.root,inData,self.filePath,self.Wscreen,self.Hscreen).res)
         else: self.reset()
 
@@ -252,6 +330,9 @@ class MainWindow(readSettings):
         self.mcNumberEdit.delete(0,END)
         self.payRollEdit.delete(0,END)
         self.inQtyEdit.delete(0,END)
+        self.blkWeightEdit.config(state=NORMAL)  # Temporarily enable to clear
+        self.blkWeightEdit.delete(0,END)
+        self.blkWeightEdit.config(state=DISABLED)  # Disable again
         self.lotNumberEdit.focus()
         self.capture.config(image = "")
         self.chipType.config(text="ChipType",bg="#ecedcc")

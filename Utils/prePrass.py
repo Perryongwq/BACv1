@@ -17,8 +17,10 @@ class prePRASS(readSettings):
         Machine Number.
     payroll : str
         Payroll Number.
-    inQty : strs
+    inQty : str
         Input Quantity.
+    blkWeight : str
+        Block Weight.
     Wscreen : str
         Providing Screen Size (Width) to Class.
     Hscreen : str
@@ -37,7 +39,7 @@ class prePRASS(readSettings):
         self.Wscreen,self.Hscreen = Wscreen,Hscreen
         self.path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),"prass",datetime.today().strftime("%b%y"))
         if not os.path.exists(self.path): os.makedirs(self.path)
-        self.lotNum,self.mcNo,self.payRoll,self.inQty = inData
+        self.lotNum,self.mcNo,self.payRoll,self.inQty,self.blkWeight = inData
 
     # def win_config(self,Wscreen,Hscreen):
 
@@ -78,8 +80,8 @@ class prePRASS(readSettings):
             if j != range(10-(len(df["Total"])-1))[-1]: prassDef += "||" 
             else: prassDef += "|"
 
-        # File Spec to follow
-        pData = f"{self.lotNum}|{self.mcNo}|{self.payRoll}|{date}|{time}|{self.inQty}|{newdf.loc['Output','Total']}|{prassDef}"
+        # File Spec to follow - Added block weight at the end
+        pData = f"{self.lotNum}|{self.mcNo}|{self.payRoll}|{date}|{time}|{self.inQty}|{newdf.loc['Output','Total']}|{prassDef}|{self.blkWeight}"
 
         with open(os.path.join(self.path,f'{self.lotNum}.txt'), 'w') as f: f.write(pData)
 
